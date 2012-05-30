@@ -1,94 +1,91 @@
-(function() {
-window.audio = new Audio();
-window.audio.src = "audio/2.mp3";
-window.audio.controls = true;
-window.audio.loop = true;
-$("#player").empty().append(window.audio);
-
-audioCtx = new webkitAudioContext();
-analyser = audioCtx.createAnalyser();
-
 App = function() {
 	var EQ_COUNT = 10;
 	var EQ_BAND_COUNT = 10;
+	var FRAME_BUFFER_SIZE = 512;
 	var eq = [];
-	var selected_eq;
+	var selectedEq;
 	var channels;
-	var sample_rate;
-	var frame_buffer_size;
-	var source_buffer;
-	var source_buffer_write_offset = 0;
-	var target_buffers = [];
-	var overlap_buffer;
-	var overlap_buffer_write_offset = 0;
-	var completion_buffer;
+	var sampleRate;
+	var sourceBuffer = [];
+	var sourceBufferWriteOffset = 0;
+	var targetBuffers = [];
 	var fft_re = [];
 	var fft_im = [];
 	var fft;
 
-	function triangular_window(x) {
+	function triangularWindowFunc(x) {
 		return 1 - Math.abs(1 - 2 * x);
 	}
 
-	function cosine_window(x) {
+	function cosineWindowFunc(x) {
 		return Math.cos(Math.PI * x - Math.PI / 2);
 	}
 
-	function hamming_window(x) {
+	function hammingWindowFunc(x) {
 		return 0.54 - 0.46 * Math.cos(2 * Math.PI * x);
 	}
 
-	function hann_window(x) {
+	function hannWindowFunc(x) {
 		return 0.5 * (1 - Math.cos(2 * Math.PI * x));
 	}
 
-	function window(buffer, size, stride, stride_offset) {
+	function windowFunc(buffer, size, stride, strideOffset) {
 		for (var i = 0; i < size; i++) {
-			buffer[i * stride + stride_offset] *= hamming_window(i / (size - 1));
-			//buffer[i * stride + stride_offset] *= triangular_window(i / (size - 1));
-			//buffer[i * stride + stride_offset] *= cosine_window(i / (size - 1));
-			//buffer[i * stride + stride_offset] *= hann_window(i / (size - 1));
+			buffer[i * stride + strideOffset] *= hammingWindowFunc(i / (size - 1));
+			//buffer[i * stride + strideOffset] *= triangularWindowFunc(i / (size - 1));
+			//buffer[i * stride + strideOffset] *= cosineWindowFunc(i / (size - 1));
+			//buffer[i * stride + strideOffset] *= hannWindowFunc(i / (size - 1));
 		}
 	}
 
-	function butterworth_filter(x, n, d0) {
+	function butterworthFilter(x, n, d0) {
 		return 1 / (1 + Math.pow(Math.abs(x) / d0, 2 * n));
 	}
 
-	function eq_filter(x) {
-		var seq = eq[selected_eq];
+	function eqFilter(x) {
+		var seq = eq[selectedEq];
 		var sum = 1;
 		for (var i = 0; i < EQ_BAND_COUNT; i++) {
-			sum += seq[EQ_BAND_COUNT - 1 - i] * butterworth_filter(x * (2 << i) - 1, 2, 0.4);
+			sum += seq[EQ_BAND_COUNT - 1 - i] * butterworthFilter(x * (2 << i) - 1, 2, 0.4);
 		}
 		return sum;
 	}
 
-	function audioAvailable(event) {
-		source_buffer.set(event.frameBuffer, source_buffer_write_offset);
-
-		var half_frame_buffer_size = frame_buffer_size / 2;
+	function process(e) {
+	    frameBuffer = new Float32Array(frameBufferSize);
+	    var n = 0;
+	    for (var i = 0; i < channels; ++i) {
+	        inputBuffer = e.inputBuffer.getChannelData(i);
+	        for (var j = 0; j < bufferSize; ++j) {
+	            frameBuffer[n++] = inputBuffer[j];
+            }
+        }
+        
+	    sourceBuffer.set(frameBuffer, sourceBufferWriteOffset);
+    	
+    	var halfFrameBufferSize = frameBufferSize / 2;
+    	
 		var offset = [];
-		offset[0] = source_buffer_write_offset - half_frame_buffer_size;
-		offset[1] = offset[0] + half_frame_buffer_size;
-		offset[2] = offset[1] + half_frame_buffer_size;
+		offset[0] = sourceBufferWriteOffset - halfFrameBufferSize;
+		offset[1] = offset[0] + halfFrameBufferSize;
+		offset[2] = offset[1] + halfFrameBufferSize;
 		if (offset[0] < 0)
-			offset[0] += source_buffer.length;
+			offset[0] += sourceBuffer.length;
 
-		source_buffer_write_offset += frame_buffer_size;
-		source_buffer_write_offset %= frame_buffer_size * 2;
+		sourceBufferWriteOffset += frameBufferSize;
+		sourceBufferWriteOffset %= frameBufferSize * 2;
 
-		for (var i = 0; i < 2; i++) {
-			target_buffers[i].set(source_buffer.subarray(offset[i + 0], offset[i + 0] + half_frame_buffer_size), 0);
-			target_buffers[i].set(source_buffer.subarray(offset[i + 1], offset[i + 1] + half_frame_buffer_size), half_frame_buffer_size);
+		for (var i = 0; i < channels; i++) {
+			targetBuffers[i].set(sourceBuffer.subarray(offset[i + 0], offset[i + 0] + halfFrameBufferSize), 0);
+			targetBuffers[i].set(sourceBuffer.subarray(offset[i + 1], offset[i + 1] + halfFrameBufferSize), halfFrameBufferSize);
 
 			for (var j = 0; j < channels; j++) {
-				window(target_buffers[i], target_buffers[i].length / channels, channels, j);
+				windowFunc(targetBuffers[i], targetBuffers[i].length / channels, channels, j);
 
-				fft.forward(target_buffers[i], channels, j, fft_re[j], fft_im[j]);
+				fft.forward(targetBuffers[i], channels, j, fft_re[j], fft_im[j]);
 
 				for (var k = 1; k < fft.size / 2; k++) {
-					var f = eq_filter((k - 1) / (fft.size - 1));
+					var f = eqFilter((k - 1) / (fft.size - 1));
 					fft_re[j][k] *= f;
 					fft_im[j][k] *= f;
 					fft_re[j][fft.size - k] *= f;
@@ -97,48 +94,14 @@ App = function() {
 			}
 
 			for (var j = 0; j < channels; j++) {
-				fft.inverse(fft_re[j], fft_im[j], target_buffers[i], channels, j);
+				fft.inverse(fft_re[j], fft_im[j], targetBuffers[i], channels, j);
 			}
+			
+			outputBuffer = e.outputBuffer.getChannelData(i);
+			for (var j = 0; j < outputBuffer.length; ++j) {
+			    outputBuffer[j] = targetBuffers[i][j];
+		    }
 		}
-
-		var completion_offset = overlap_buffer_write_offset;
-
-		for (var i = 0; i < 2; i++) {
-			for (var j = 0; j < frame_buffer_size / 2; j++) {
-				overlap_buffer[overlap_buffer_write_offset + j] += target_buffers[i][j];
-			}
-
-			overlap_buffer_write_offset += frame_buffer_size / 2;
-			overlap_buffer_write_offset %= overlap_buffer.length;
-
-			for (var j = 0; j < frame_buffer_size / 2; j++) {
-				overlap_buffer[overlap_buffer_write_offset + j] = target_buffers[i][frame_buffer_size / 2 + j];
-			}
-		}
-
-		completion_buffer = overlap_buffer.subarray(completion_offset, completion_offset + frame_buffer_size);
-		o_audio.mozWriteAudio(completion_buffer);
-	}
-
-	function hsvToRgb(h, s, v) {
-		var r, g, b;
-
-		var i = Math.floor(h * 6);
-		var f = h * 6 - i;
-		var p = v * (1 - s);
-		var q = v * (1 - f * s);
-		var t = v * (1 - (1 - f) * s);
-
-		switch (i % 6) {
-		case 0: r = v, g = t, b = p; break;
-		case 1: r = q, g = v, b = p; break;
-		case 2: r = p, g = v, b = t; break;
-		case 3: r = p, g = q, b = v; break;
-		case 4: r = t, g = p, b = v; break;
-		case 5: r = v, g = p, b = q; break;
-		}
-
-		return [parseInt(r * 255), parseInt(g * 255), parseInt(b * 255)];
 	}
 
 	function drawSpectrum() {
@@ -179,36 +142,6 @@ App = function() {
 			ctx.fillRect((bar_width + bar_interval) * i/4, canvas.height, bar_width, -magnitude);
 		}
 	}
-
-	function loadedMetadata(event) {
-		in_audio.volume = 0;
-		in_audio.decodeAudioData('MozAudioAvailable', audioAvailable, false);
-		o_audio.mozSetup(in_audio.mozChannels, in_audio.mozSampleRate);
-		//o_audio.frameBufferSize = in_audio.mozFrameBufferLength;
-
-		frame_buffer_size = in_audio.mozFrameBufferLength;
-		channels = in_audio.mozChannels;
-		sample_rate = in_audio.mozSampleRate;    
-
-		source_buffer = new Float32Array(frame_buffer_size * 2);
-		source_buffer_write_offset = 0;
-
-		target_buffers[0] = new Float32Array(frame_buffer_size);
-		target_buffers[1] = new Float32Array(frame_buffer_size);
-
-		overlap_buffer = new Float32Array(frame_buffer_size * 2);
-		overlap_buffer_write_offset = 0;
-
-		var bufferSize = frame_buffer_size / channels;
-		fft = new FFT(bufferSize);
-
-		for (var i = 0; i < channels; i++) {
-			fft_re[i] = new Float32Array(bufferSize);
-			fft_im[i] = new Float32Array(bufferSize);
-		}
-
-		setInterval(drawSpectrum, 1000 / 24);
-	}
 	
 	function db_to_mag(db) {
 		return Math.pow(10, db / 10);
@@ -230,7 +163,7 @@ App = function() {
 		eq[8] = [-1.00, -1.00, -1.00, -1.00,  0.00,  0.10,  0.20,  0.30,  0.10, -0.10];
 		eq[9] = [ 0.20,  0.80,  0.80,  0.40,  0.80,  0.80,  0.40,  0.20,  0.00, -0.40];
 
-		selected_eq = 0;
+		selectedEq = 0;
 
 		for (var i = 0; i < EQ_BAND_COUNT; i++) {
 			var createSlider = function(index) {
@@ -238,7 +171,7 @@ App = function() {
 					min: -1.0, max: 2.0, step: 0.05, value: eq[0][index],
 					orientation: 'vertical',
 					slide: function(event, ui) { 
-						selected_eq = 0;
+						selectedEq = 0;
 						eq[0][index] = ui.value;
 						$("#combobox-equalizer").val({value: 0});
 					}
@@ -248,8 +181,8 @@ App = function() {
 
 		$("#combobox-equalizer").val({value: 0}).change(function() { 
 			for (var i = 0; i < EQ_COUNT; i++) {
-				selected_eq = this.value;
-				$("#slider" + i).slider({value: eq[selected_eq][i]});
+				selectedEq = this.value;
+				$("#slider" + i).slider({value: eq[selectedEq][i]});
 			}
 		});
     }
@@ -266,24 +199,43 @@ App = function() {
         CANVAS_HEIGHT = eqCanvas.height;
         CANVAS_WIDTH = eqCanvas.width;
         
-        showVisual();
-        
+        showFrequencyVisual();
         setInterval(showWaveformVisual, 1000 / 14);
     }
     
-    function init() {
-       //load("audio/1.mp3");
+    function initAudio() {
+        sampleRate = audioCtx.sampleRate;
+        channels = audioCtx.destination.numberOfChannels;
+        frameBufferSize = FRAME_BUFFER_SIZE;
+        
+        sourceBuffer = new Float32Array(frameBufferSize * channels);
+        sourceBufferWriteOffset = 0;
+        
+        for (var i = 0; i < channels; i++) {
+            targetBuffers[i] = new Float32Array(frameBufferSize);
+        }
+        
+        bufferSize = frameBufferSize / channels;
+        fft = new FFT(bufferSize);
+
+        for (var i = 0; i < channels; i++) {
+        	fft_re[i] = new Float32Array(bufferSize);
+        	fft_im[i] = new Float32Array(bufferSize);
+        }
+        
         var source = audioCtx.createMediaElementSource(audio);
+        var processor = audioCtx.createJavaScriptNode(bufferSize, 1, 1);
+        processor.onaudioprocess = function(e) { process(e) };
+        source.connect(processor);
         source.connect(analyser);
-        analyser.connect(audioCtx.destination); 
-        //init_eq();
-        
+        processor.connect(audioCtx.destination);
+        analyser.connect(audioCtx.destination);
+    }
+    function init() {
+        initAudio();
+        initEq();
         initVisual();
-        
-       // showVisual();
     }
     
     return { init: init };
 }();
-
-})();

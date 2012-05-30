@@ -4,8 +4,10 @@
 <meta name="Author" content="Huayi Zhang, irachex@gmail.com">
 <meta http-equiv="content-type" content="text/html; charset=UTF-8">
 <title>Audio Visual</title>
+<link rel="stylesheet" type="text/css" href="assets/css/jquery-ui/jquery-ui-1.8.20.custom.css">
 <link rel="stylesheet" type="text/css" href="assets/css/style.css">
 <script src="assets/js/jquery-1.7.2.min.js"></script>
+<script src="assets/js/jquery-ui-1.8.20.custom.min.js"></script>
 </head>
 
 <body>
@@ -46,10 +48,10 @@
       
       <div id="playlist">
           <ul>
-              <li class="song"><a href="#audio/1.mp3">audio/1.mp3</a></li>
-              <li class="song"><a href="#audio/2.mp3">audio/2.mp3</a></li>
-              <li class="song"><a href="#audio/3.ogg">audio/3.ogg</a></li>
-              <li class="song"><a href="#audio/4.ogg">audio/4.ogg</a></li>
+              <li class="song"><a href="?audio=1.mp3">1.mp3</a></li>
+              <li class="song"><a href="?audio=2.mp3">2.mp3</a></li>
+              <li class="song"><a href="?audio=3.ogg">3.ogg</a></li>
+              <li class="song"><a href="?audio=4.ogg">4.ogg</a></li>
           </ul>
       </div>
       
@@ -61,16 +63,14 @@
     </div>
     
   </div>
-  
+  <script type="text/javascript" src="assets/js/utils.js"></script>
   <script type="text/javascript" src="assets/js/fft.js"></script>
   <script type="text/javascript" src="assets/js/visual.js"></script>
   <script type="text/javascript" src="assets/js/app.js"></script>
   <script type="text/javascript">
-      (function() {
-          $(window).load(function() {
-              App.init();
-          });
-      })();
+      $(window).load(function() {
+          App.init();
+      });
   </script>
 </body>
 </html>

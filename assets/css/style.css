@@ -9,6 +9,14 @@ html, body {
 }
 body {
   font: 11pt 'Arial', 'Lucidia Sans Unicode';
+  -webkit-font-smoothing: antialiased;
+  background: -webkit-gradient(radial, center center, 500, center center, 1400, from(transparent), to(rgba(0, 0, 0, 0.6))) white;
+  background: -moz-radial-gradient(farthest-side, transparent 90%, rgba(0, 0, 0, 0.2) 150%) white;
+  background: -webkit-radial-gradient(farthest-side, transparent 90%, rgba(0, 0, 0, 0.2) 150%) white;
+  background: -ms-radial-gradient(farthest-side, transparent 90%, rgba(0, 0, 0, 0.2) 150%) white;
+  background: -o-radial-gradient(farthest-side, transparent 90%, rgba(0, 0, 0, 0.2) 150%) white;
+  background: radial-gradient(farthest-side, transparent 90%, rgba(0, 0, 0, 0.2) 150%) white;
+  box-sizing: border-box;
 }
 
 #visual {

@@ -1,26 +1,26 @@
 function hsvToRgb(h, s, v) {
-		var r, g, b;
+	var r, g, b;
 
-		var i = Math.floor(h * 6);
-		var f = h * 6 - i;
-		var p = v * (1 - s);
-		var q = v * (1 - f * s);
-		var t = v * (1 - (1 - f) * s);
+	var i = Math.floor(h * 6);
+	var f = h * 6 - i;
+	var p = v * (1 - s);
+	var q = v * (1 - f * s);
+	var t = v * (1 - (1 - f) * s);
 
-		switch (i % 6) {
+	switch (i % 6) {
 		case 0: r = v, g = t, b = p; break;
 		case 1: r = q, g = v, b = p; break;
 		case 2: r = p, g = v, b = t; break;
 		case 3: r = p, g = q, b = v; break;
 		case 4: r = t, g = p, b = v; break;
 		case 5: r = v, g = p, b = q; break;
-		}
-
-		return [parseInt(r * 255), parseInt(g * 255), parseInt(b * 255)];
 	}
+
+	return [parseInt(r * 255), parseInt(g * 255), parseInt(b * 255)];
+}
 	
-function showVisual(time) {
-  window.webkitRequestAnimationFrame(showVisual, eqCanvas);  
+function showFrequencyVisual(time) {
+  window.webkitRequestAnimationFrame(showFrequencyVisual, eqCanvas);  
 
   var freqByteData = new Uint8Array(analyser.frequencyBinCount);
   analyser.getByteFrequencyData(freqByteData); //analyser.getByteTimeDomainData(freqByteData);
@@ -33,7 +33,7 @@ function showVisual(time) {
 
   eqCanvasCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
   eqCanvasCtx.lineCap = 'round';
-  //eqCanvasCtx.fillStyle = "#3A5E8C";
+  eqCanvasCtx.fillStyle = "#3A5E8C";
   
   for (var i = 0; i < numBars; ++i) {
 	var magnitude = freqByteData[i + OFFSET];
