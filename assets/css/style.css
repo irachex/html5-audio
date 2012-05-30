@@ -1,0 +1,26 @@
+html, body {
+  margin:0px 0px; padding:0px;
+  text-align:center;
+}
+.slider { 
+  margin: 10px; 
+  display: inline-block; 
+  vertical-align: top;
+}
+body {
+  font: 11pt 'Arial', 'Lucidia Sans Unicode';
+}
+
+#visual {
+  margin-top: 20px;
+}
+#eq-canvas {
+  -webkit-box-reflect: below 5px -webkit-linear-gradient(top, transparent, transparent 50%, rgba(255,255,255,0.2));
+}
+
+#control {
+  position: absolute;
+  top:0;
+  left:0;
+  z-index: 10;
+}
