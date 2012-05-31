@@ -8,6 +8,7 @@ App = function() {
 	var sampleRate;
 	var sourceBuffer = [];
 	var sourceBufferWriteOffset = 0;
+	var overlapBufferWriteOffset = 0;
 	var targetBuffers = [];
 	var fft_re = [];
 	var fft_im = [];
@@ -97,10 +98,29 @@ App = function() {
 				fft.inverse(fft_re[j], fft_im[j], targetBuffers[i], channels, j);
 			}
 			
-			outputBuffer = e.outputBuffer.getChannelData(i);
-			for (var j = 0; j < outputBuffer.length; ++j) {
-			    outputBuffer[j] = targetBuffers[i][j];
-		    }
+		}
+		
+		for (var i = 0; i < channels; i++) {
+        	for (var j = 0; j < frameBufferSize / channels; j++) {
+        		overlapBuffer[overlapBufferWriteOffset + j] += targetBuffers[i][j];
+        	}
+
+        	overlapBufferWriteOffset += frameBufferSize / channels;
+        	overlapBufferWriteOffset %= overlapBuffer.length;
+
+        	for (var j = 0; j < frameBufferSize / channels; j++) {
+        		overlapBuffer[overlapBufferWriteOffset + j] = targetBuffers[i][frameBufferSize / channels + j];
+        	}
+        }
+        
+		var completionOffset = overlapBufferWriteOffset;
+        completionBuffer = overlapBuffer.subarray(completionOffset, completionOffset + frameBufferSize);
+        
+        for (var i = 0; i < channels; ++i) {
+            outputBuffer = e.outputBuffer.getChannelData(i);
+		    for (var j = 0; j < outputBuffer.length; ++j) {
+		        outputBuffer[j] = completionBuffer[j * channels + i];
+	        }
 		}
 	}
 
@@ -152,16 +172,16 @@ App = function() {
 	}
 	
 	function initEq() {
-	    eq[0] = [ 0.00,  0.00,  0.00,  0.00,  0.00,  0.00,  0.00,  0.00,  0.00,  0.00];
-		eq[1] = [ 0.30,  0.30,  0.20,  0.05,  0.10,  0.10,  0.20,  0.25,  0.20,  0.10];
-		eq[2] = [ 1.90,  1.80,  1.70,  1.35,  1.10,  0.50,  0.20,  0.25,  0.20,  0.10];
-		eq[3] = [ 0.40,  0.30,  0.20,  0.00,  0.50,  0.30,  0.10,  0.20,  0.60,  0.70];
-		eq[4] = [ 0.00,  0.00,  0.00,  0.00,  0.00,  0.00,  0.00,  0.00,  0.00,  0.00];
-		eq[5] = [ 0.40,  0.30,  0.00,  0.30,  0.40,  0.20,  0.40,  0.50,  0.40,  0.50];
-		eq[6] = [ 0.40,  0.20,  0.00,  0.40,  1.00,  1.00,  0.40,  0.00, -0.20, -0.40];
-		eq[7] = [ 0.75,  0.65,  0.60,  0.50,  0.15,  0.25,  0.00,  0.25,  0.40,  0.54];
-		eq[8] = [-1.00, -1.00, -1.00, -1.00,  0.00,  0.10,  0.20,  0.30,  0.10, -0.10];
-		eq[9] = [ 0.20,  0.80,  0.80,  0.40,  0.80,  0.80,  0.40,  0.20,  0.00, -0.40];
+	    eq[0] = [ 0.00,  0.00,  0.00,  0.00,  0.00,  0.00,  0.00,  0.00,  0.00,  0.00]; // 
+		eq[1] = [ 0.30,  0.30,  0.20,  0.05,  0.10,  0.10,  0.20,  0.25,  0.20,  0.10]; //
+		eq[2] = [ 1.90,  1.80,  1.70,  1.35,  1.10,  0.50,  0.20,  0.25,  0.20,  0.10]; //
+		eq[3] = [ 0.40,  0.30,  0.20,  0.00,  0.50,  0.30,  0.10,  0.20,  0.60,  0.70]; //
+		eq[4] = [ 0.00,  0.00,  0.00,  0.00,  0.00,  0.00,  0.00,  0.00,  0.00,  0.00]; //
+		eq[5] = [ 0.40,  0.30,  0.00,  0.30,  0.40,  0.20,  0.40,  0.50,  0.40,  0.50]; //
+		eq[6] = [ 0.40,  0.20,  0.00,  0.40,  1.00,  1.00,  0.40,  0.00, -0.20, -0.40]; //
+		eq[7] = [ 0.75,  0.65,  0.60,  0.50,  0.15,  0.25,  0.00,  0.25,  0.40,  0.54]; //
+		eq[8] = [-1.00, -1.00, -1.00, -1.00,  0.00,  0.10,  0.20,  0.30,  0.10, -0.10]; //
+		eq[9] = [ 0.20,  0.80,  0.80,  0.40,  0.80,  0.80,  0.40,  0.20,  0.00, -0.40]; //
 
 		selectedEq = 0;
 
@@ -208,9 +228,8 @@ App = function() {
         channels = audioCtx.destination.numberOfChannels;
         frameBufferSize = FRAME_BUFFER_SIZE;
         
-        sourceBuffer = new Float32Array(frameBufferSize * channels);
-        sourceBufferWriteOffset = 0;
-        
+        sourceBuffer = new Float32Array(frameBufferSize * channels + sourceBufferWriteOffset);
+        overlapBuffer = new Float32Array(frameBufferSize * channels);
         for (var i = 0; i < channels; i++) {
             targetBuffers[i] = new Float32Array(frameBufferSize);
         }
@@ -227,8 +246,7 @@ App = function() {
         var processor = audioCtx.createJavaScriptNode(bufferSize, 1, 1);
         processor.onaudioprocess = function(e) { process(e) };
         source.connect(processor);
-        source.connect(analyser);
-        processor.connect(audioCtx.destination);
+        processor.connect(analyser);
         analyser.connect(audioCtx.destination);
     }
     function init() {
