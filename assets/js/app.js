@@ -122,22 +122,91 @@ App = function() {
 		        outputBuffer[j] = completionBuffer[j * channels + i];
 	        }
 		}
+		
+		showWaveformVisual();
 	}
 
-	function drawSpectrum() {
-		if (!completion_buffer) {
+
+    function hsvToRgb(h, s, v) {
+    	var r, g, b;
+
+    	var i = Math.floor(h * 6);
+    	var f = h * 6 - i;
+    	var p = v * (1 - s);
+    	var q = v * (1 - f * s);
+    	var t = v * (1 - (1 - f) * s);
+
+    	switch (i % 6) {
+    		case 0: r = v, g = t, b = p; break;
+    		case 1: r = q, g = v, b = p; break;
+    		case 2: r = p, g = v, b = t; break;
+    		case 3: r = p, g = q, b = v; break;
+    		case 4: r = t, g = p, b = v; break;
+    		case 5: r = v, g = p, b = q; break;
+    	}
+
+    	return [parseInt(r * 255), parseInt(g * 255), parseInt(b * 255)];
+    }
+
+    function showFrequencyVisual(time) {
+      window.webkitRequestAnimationFrame(showFrequencyVisual, eqCanvas);  
+
+      var freqByteData = new Uint8Array(analyser.frequencyBinCount);
+      analyser.getByteFrequencyData(freqByteData); //analyser.getByteTimeDomainData(freqByteData);
+
+      var SPACER_WIDTH = 15;
+      var BAR_WIDTH = 10;
+      var OFFSET = 0;
+      var CUTOFF = 23;
+      var numBars = Math.round(CANVAS_WIDTH / SPACER_WIDTH);
+
+      eqCanvasCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+      eqCanvasCtx.lineCap = 'round';
+      eqCanvasCtx.fillStyle = "#3A5E8C";
+
+      for (var i = 0; i < numBars; ++i) {
+    	var magnitude = freqByteData[i + OFFSET];
+        eqCanvasCtx.fillRect(i * SPACER_WIDTH, CANVAS_HEIGHT, BAR_WIDTH, -magnitude);  
+      }
+    }
+
+    function showWaveformVisual(time) {
+      var timeDomainData = new Uint8Array(analyser.frequencyBinCount);
+      analyser.getByteTimeDomainData(timeDomainData);
+
+      var RADIUS = 5;
+      var SPACER_WIDTH = 10;
+      var OFFSET = 0;
+      var numBars = Math.round(CANVAS_WIDTH / SPACER_WIDTH);
+
+      waveformCanvasCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+      waveformCanvasCtx.lineCap = 'round';
+
+      for (var i = 0; i < numBars; ++i) {
+        var rgb = hsvToRgb(i / (numBars / 2), 1, 1);
+        var magnitude = timeDomainData[i + OFFSET];
+        waveformCanvasCtx.fillStyle = "rgb(" + rgb.join(",") + ")";
+        waveformCanvasCtx.beginPath();
+        waveformCanvasCtx.arc(i * SPACER_WIDTH, magnitude, RADIUS, 0 , 2 * Math.PI, false);
+        waveformCanvasCtx.closePath();
+        waveformCanvasCtx.fill();
+      }
+    }
+    
+	function showSpectrumVisual() {
+		if (!completionBuffer) {
 			return;
 		}
 
 		// FFT to completion buffer for spectrum drawing
 		for (var i = 0; i < channels; i++) {
-			fft.forward(completion_buffer, channels, i, fft_re[i], fft_im[i]);
+			fft.forward(completionBuffer, channels, i, fft_re[i], fft_im[i]);
 		}
 		
-		ctx.clearRect(0, 0, canvas.width, canvas.height);
+		eqCanvasCtx.clearRect(0, 0, eqCanvas.width, eqCanvas.height);
 
-		var bar_width = 3;
-		var bar_interval = 1;
+		var barWidth = 3;
+		var barInterval = 1;
 		var scale = 100;
 
 		for (var i = 0; i < fft.size / 2; i += 4) {
@@ -158,8 +227,8 @@ App = function() {
 
 			var rgb = hsvToRgb(i / (fft.size / 2), 1, 1);
 
-			ctx.fillStyle = "rgb(" + rgb.join(",") + ")";
-			ctx.fillRect((bar_width + bar_interval) * i/4, canvas.height, bar_width, -magnitude);
+			eqCanvasCtx.fillStyle = "rgb(" + rgb.join(",") + ")";
+			eqCanvasCtx.fillRect((barWidth + barInterval) * i/4, eqCanvas.height, barWidth, -magnitude);
 		}
 	}
 	
@@ -220,7 +289,8 @@ App = function() {
         CANVAS_WIDTH = eqCanvas.width;
         
         showFrequencyVisual();
-        setInterval(showWaveformVisual, 1000 / 14);
+        //setInterval(showSpectrumVisual, 1000 / 14);
+        //setInterval(showWaveformVisual, 1000 / 14);
     }
     
     function initAudio() {
@@ -245,6 +315,7 @@ App = function() {
         var source = audioCtx.createMediaElementSource(audio);
         var processor = audioCtx.createJavaScriptNode(bufferSize, 1, 1);
         processor.onaudioprocess = function(e) { process(e) };
+       // source.connect(analyser);
         source.connect(processor);
         processor.connect(analyser);
         analyser.connect(audioCtx.destination);

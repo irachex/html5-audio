@@ -1,14 +1,16 @@
-audio = new Audio();
-audio.src = "audio/" + (getParameterByName("audio") || "1.mp3");
-audio.controls = true;
-audio.loop = true;
-$("#player").empty().append(audio);
+(function() {
+    audio = new Audio();
+    audio.src = "audio/" + (getParameterByName("audio") || "1.mp3");
+    audio.controls = true;
+    audio.loop = true;
+    $("#player").empty().append(audio);
 
-audioCtx = new webkitAudioContext();
-analyser = audioCtx.createAnalyser();
+    audioCtx = new webkitAudioContext();
+    analyser = audioCtx.createAnalyser();
 
-function getParameterByName(name)
-{
+})();
+
+function getParameterByName(name) {
   name = name.replace(/[\[]/, "\\\[").replace(/[\]]/, "\\\]");
   var regexS = "[\\?&]" + name + "=([^&#]*)";
   var regex = new RegExp(regexS);
