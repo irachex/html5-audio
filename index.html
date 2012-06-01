@@ -15,6 +15,13 @@
     <div id="control">
       <div id="player">
       </div>
+      
+      <div id="visual-control">
+          <button id="default-visual">Default</button>
+          <button id="frequency-visual">Frequency</button>
+          <button id="sonogram-visual">Sonogram</button>
+          <button id="3d-sonogram-visual">3D Sonogram</button>    
+      </div>
 
       <div>
         <button id="on-eq">On</button>
@@ -63,10 +70,16 @@
     <div id="visual">
       <canvas id="waveform-canvas" class="visual" width="512" height="300"></canvas>
       <canvas id="eq-canvas" class="visual" width="512" height="300"></canvas>
+      <canvas id="gl-canvas" class="visual" width="512" height="600"></canvas>
     </div>
     
   </div>
   <script type="text/javascript" src="assets/js/fft.js"></script>
+  <script type="text/javascript" src="assets/js/base.js"></script>
+  <script type="text/javascript" src="assets/js/cameracontroller.js"></script>
+  <script type="text/javascript" src="assets/js/matrix4x4.js"></script>
+  <script type="text/javascript" src="assets/js/visualizer.js"></script>
+  <script type="text/javascript" src="assets/js/shader.js"></script>
   <script type="text/javascript" src="assets/js/app.js"></script>
   <script type="text/javascript">
       $(window).load(function() {

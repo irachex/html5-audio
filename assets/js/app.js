@@ -1,3 +1,6 @@
+var DEFAULT_VISUAL = 0;
+var isGLVisual = false;
+
 App = function() {
 	var EQ_COUNT = 10;
 	var EQ_BAND_COUNT = 10;
@@ -98,7 +101,7 @@ App = function() {
 
 				fft.forward(targetBuffers[i], channels, j, fft_re[j], fft_im[j]);
 
-				for (var k = 1; k < fft.size / 2; k++) {
+				for (var k = 1; k < fft.size / channels; k++) {
 					var f = eqFilter((k - 1) / (fft.size - 1));
 					fft_re[j][k] *= f;
 					fft_im[j][k] *= f;
@@ -109,7 +112,7 @@ App = function() {
 
 			for (var j = 0; j < channels; j++) {
 				fft.inverse(fft_re[j], fft_im[j], targetBuffers[i], channels, j);
-			}	
+			}
 		}
 		
 		/*for (var i = 0; i < channels; i++) {
@@ -137,17 +140,22 @@ App = function() {
 		}
 		
 	}
+	
+	function db_to_mag(db) {
+		return Math.pow(10, db / 10);
+	}
 
+	function mag_to_db(mag) {
+		return 10 * (Math.log(mag) / Math.log(10));
+	}
 
     function hsvToRgb(h, s, v) {
     	var r, g, b;
-
     	var i = Math.floor(h * 6);
     	var f = h * 6 - i;
     	var p = v * (1 - s);
     	var q = v * (1 - f * s);
     	var t = v * (1 - (1 - f) * s);
-
     	switch (i % 6) {
     		case 0: r = v, g = t, b = p; break;
     		case 1: r = q, g = v, b = p; break;
@@ -156,58 +164,65 @@ App = function() {
     		case 4: r = t, g = p, b = v; break;
     		case 5: r = v, g = p, b = q; break;
     	}
-
     	return [parseInt(r * 255), parseInt(g * 255), parseInt(b * 255)];
     }
     
     function showVisual() {
-        showFrequencyVisual();
-        showWaveformVisual();
+        //showFrequencyVisual();
+       // showWaveformVisual();
+        showGLVisual();
     }
     
     function showFrequencyVisual(time) {
-      window.webkitRequestAnimationFrame(showFrequencyVisual, eqCanvas);  
+        if (isGLVisual) return;
+        window.webkitRequestAnimationFrame(showFrequencyVisual, eqCanvas);
+        var freqByteData = new Uint8Array(analyser.frequencyBinCount);
+        analyser.getByteFrequencyData(freqByteData);
 
-      var freqByteData = new Uint8Array(analyser.frequencyBinCount);
-      analyser.getByteFrequencyData(freqByteData);
+        var SPACER_WIDTH = 15;
+        var BAR_WIDTH = 10;
+        var OFFSET = 0;
+        var CUTOFF = 23;
+        var numBars = Math.round(CANVAS_WIDTH / SPACER_WIDTH);
 
-      var SPACER_WIDTH = 15;
-      var BAR_WIDTH = 10;
-      var OFFSET = 0;
-      var CUTOFF = 23;
-      var numBars = Math.round(CANVAS_WIDTH / SPACER_WIDTH);
+        eqCanvasCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+        eqCanvasCtx.lineCap = 'round';
+        eqCanvasCtx.fillStyle = "#3A5E8C";
 
-      eqCanvasCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-      eqCanvasCtx.lineCap = 'round';
-      eqCanvasCtx.fillStyle = "#3A5E8C";
-
-      for (var i = 0; i < numBars; ++i) {
-    	var magnitude = freqByteData[i + OFFSET];
-        eqCanvasCtx.fillRect(i * SPACER_WIDTH, CANVAS_HEIGHT, BAR_WIDTH, -magnitude);
-      }
+        for (var i = 0; i < numBars; ++i) {
+        	var magnitude = freqByteData[i + OFFSET];
+            eqCanvasCtx.fillRect(i * SPACER_WIDTH, CANVAS_HEIGHT, BAR_WIDTH, -magnitude);
+        }
     }
 
     function showWaveformVisual(time) {
-      var timeDomainData = new Uint8Array(analyser.frequencyBinCount);
-      analyser.getByteTimeDomainData(timeDomainData);
+        if (isGLVisual) return;
+        var timeDomainData = new Uint8Array(analyser.frequencyBinCount);
+        analyser.getByteTimeDomainData(timeDomainData);
 
-      var RADIUS = 5;
-      var SPACER_WIDTH = 10;
-      var OFFSET = 0;
-      var numBars = Math.round(CANVAS_WIDTH / SPACER_WIDTH);
+        var RADIUS = 5;
+        var SPACER_WIDTH = 10;
+        var OFFSET = 0;
+        var numBars = Math.round(CANVAS_WIDTH / SPACER_WIDTH);
 
-      waveformCanvasCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-      waveformCanvasCtx.lineCap = 'round';
+        waveformCanvasCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+        waveformCanvasCtx.lineCap = 'round';
 
-      for (var i = 0; i < numBars; ++i) {
-        var rgb = hsvToRgb(i / (numBars / 2), 1, 1);
-        var magnitude = timeDomainData[i + OFFSET];
-        waveformCanvasCtx.fillStyle = "rgb(" + rgb.join(",") + ")";
-        waveformCanvasCtx.beginPath();
-        waveformCanvasCtx.arc(i * SPACER_WIDTH, magnitude, RADIUS, 0 , 2 * Math.PI, false);
-        waveformCanvasCtx.closePath();
-        waveformCanvasCtx.fill();
-      }
+        for (var i = 0; i < numBars; ++i) {
+            var rgb = hsvToRgb(i / (numBars / 2), 1, 1);
+            var magnitude = timeDomainData[i + OFFSET];
+            waveformCanvasCtx.fillStyle = "rgb(" + rgb.join(",") + ")";
+            waveformCanvasCtx.beginPath();
+            waveformCanvasCtx.arc(i * SPACER_WIDTH, magnitude, RADIUS, 0 , 2 * Math.PI, false);
+            waveformCanvasCtx.closePath();
+            waveformCanvasCtx.fill();
+        }
+    }
+    
+    function showGLVisual() {
+        if (!isGLVisual) return;
+        window.webkitRequestAnimationFrame(showGLVisual, glCanvas);
+        analyserView.doFrequencyAnalysis();
     }
     
 	function showSpectrumVisual() {
@@ -219,7 +234,7 @@ App = function() {
 		for (var i = 0; i < channels; i++) {
 			fft.forward(completionBuffer, channels, i, fft_re[i], fft_im[i]);
 		}
-		
+
 		eqCanvasCtx.clearRect(0, 0, eqCanvas.width, eqCanvas.height);
 
 		var barWidth = 3;
@@ -249,14 +264,68 @@ App = function() {
 		}
 	}
 	
-	function db_to_mag(db) {
-		return Math.pow(10, db / 10);
-	}
-
-	function mag_to_db(mag) {
-		return 10 * (Math.log(mag) / Math.log(10));
-	}
+	function switchVisual(visualType) {
+	    switch (visualType) {
+	        case DEFAULT_VISUAL:
+	            if (isGLVisual) {
+	                $("#gl-canvas").hide();
+	                $("#eq-canvas").show();
+	                $("#waveform-canvas").show();
+	                isGLVisual = false;
+	                showFrequencyVisual();
+                }
+	            break;
+	        default:
+	            if (!isGLVisual) {
+	                $("#gl-canvas").show();
+	                $("#eq-canvas").hide();
+	                $("#waveform-canvas").hide();
+                    isGLVisual = true;
+                    showGLVisual();
+                }
+	            analyserView.setAnalysisType(visualType);
+	            break;
+        }
+    }
 	
+	function initVisual() {
+	    $("#gl-canvas").hide();
+	    glCanvas = document.getElementById('gl-canvas');
+	    glCanvas.width = document.body.clientWidth;
+	    analyserView = new AnalyserView("gl-canvas");
+	    analyserView.initByteBuffer();
+        
+        eqCanvas = document.getElementById('eq-canvas');
+        eqCanvas.width = document.body.clientWidth;
+        eqCanvasCtx = eqCanvas.getContext('2d');
+        
+        waveformCanvas = document.getElementById('waveform-canvas');
+        waveformCanvas.width = document.body.clientWidth;
+        waveformCanvasCtx = waveformCanvas.getContext('2d');
+
+        CANVAS_HEIGHT = eqCanvas.height;
+        CANVAS_WIDTH = eqCanvas.width;
+        
+        //showVisual();
+        showFrequencyVisual();
+        //setInterval(showSpectrumVisual, 1000 / 14);
+        setInterval(showWaveformVisual, 1000 / 14);
+        //showGLVisual();
+        
+        $("#default-visual").click(function() {
+            switchVisual(DEFAULT_VISUAL);
+        });
+        $("#frequency-visual").click(function() {
+            switchVisual(ANALYSISTYPE_FREQUENCY);
+        });
+        $("#sonogram-visual").click(function() {
+            switchVisual(ANALYSISTYPE_SONOGRAM);
+        });
+        $("#3d-sonogram-visual").click(function() {
+            switchVisual(ANALYSISTYPE_3D_SONOGRAM);
+        });
+    }
+    
 	function turnOnEq() {
 	    source.disconnect();
 	    processor.disconnect();
@@ -274,7 +343,7 @@ App = function() {
         source.connect(analyser);
         analyser.connect(audioCtx.destination);
     }
-	
+    
 	function initEq() {
 	    eq[0] = [ 0.00,  0.00,  0.00,  0.00,  0.00,  0.00,  0.00,  0.00,  0.00,  0.00]; // 
 		eq[1] = [ 0.30,  0.30,  0.20,  0.05,  0.10,  0.10,  0.20,  0.25,  0.20,  0.10]; //
@@ -319,25 +388,6 @@ App = function() {
         });
     }
     
-    function initVisual() {
-        eqCanvas = document.getElementById('eq-canvas');
-        eqCanvasCtx = eqCanvas.getContext('2d');
-        eqCanvas.width = document.body.clientWidth;
-        
-        waveformCanvas = document.getElementById('waveform-canvas');
-        waveformCanvasCtx = waveformCanvas.getContext('2d');
-        waveformCanvas.width = document.body.clientWidth;
-
-        CANVAS_HEIGHT = eqCanvas.height;
-        CANVAS_WIDTH = eqCanvas.width;
-        
-        showVisual();
-		
-        showFrequencyVisual();
-        //setInterval(showSpectrumVisual, 1000 / 14);
-        setInterval(showWaveformVisual, 1000 / 14);
-    }
-    
     function loadAudio(url, callback) {
         // Load asynchronously
         var request = new XMLHttpRequest();
@@ -350,7 +400,7 @@ App = function() {
             source.noteOn(0);*/
             audioCtx.decodeAudioData(request.response, function(buffer) {
                 source.buffer = buffer;
-                source.looping = true;
+                source.loop = true;
                 source.noteOn(0);
             });
         };
@@ -387,7 +437,7 @@ App = function() {
         processor.connect(analyser);
         analyser.connect(audioCtx.destination);
         
-        loadAudio("audio/5.mp3");
+        loadAudio("audio/2.mp3");
         
         
         $(".song").click(function() {
