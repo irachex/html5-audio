@@ -7,7 +7,7 @@
 
     audioCtx = new webkitAudioContext();
     analyser = audioCtx.createAnalyser();
-
+    
 })();
 
 function getParameterByName(name) {

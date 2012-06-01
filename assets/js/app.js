@@ -1,7 +1,7 @@
 App = function() {
 	var EQ_COUNT = 10;
 	var EQ_BAND_COUNT = 10;
-	var FRAME_BUFFER_SIZE = 512;
+	var FRAME_BUFFER_SIZE = 2048;
 	var eq = [];
 	var selectedEq;
 	var channels;
@@ -53,6 +53,17 @@ App = function() {
 	}
 
 	function process(e) {
+	   /* var inputArrayL = event.inputBuffer.getChannelData(0);
+        var inputArrayR = event.inputBuffer.getChannelData(1);
+        var outputArrayL = event.outputBuffer.getChannelData(0);
+        var outputArrayR = event.outputBuffer.getChannelData(1);
+
+        var n = inputArrayL.length;
+
+        for (var i = 0; i < n; ++i) {
+            outputArrayL[i] = inputArrayL[i];
+            outputArrayR[i] = inputArrayR[i];
+        }*/
 	    frameBuffer = new Float32Array(frameBufferSize);
 	    var n = 0;
 	    for (var i = 0; i < channels; ++i) {
@@ -293,7 +304,29 @@ App = function() {
         //setInterval(showWaveformVisual, 1000 / 14);
     }
     
+    function loadAudio(url, callback) {
+        // Load asynchronously
+        var request = new XMLHttpRequest();
+        request.open("GET", url, true);
+        request.responseType = "arraybuffer";
+        request.onload = function() { 
+            /*
+            source.buffer = audioCtx.createBuffer(request.response, false);
+            source.looping = true;
+            source.noteOn(0);*/
+            audioCtx.decodeAudioData(request.response, function(buffer) {
+                source.buffer = buffer;
+                source.looping = true;
+                source.noteOn(0);
+            });
+        };
+        request.send();
+    }
+    
     function initAudio() {
+        audioCtx = new webkitAudioContext();
+        analyser = audioCtx.createAnalyser();
+                
         sampleRate = audioCtx.sampleRate;
         channels = audioCtx.destination.numberOfChannels;
         frameBufferSize = FRAME_BUFFER_SIZE;
@@ -312,14 +345,17 @@ App = function() {
         	fft_im[i] = new Float32Array(bufferSize);
         }
         
-        var source = audioCtx.createMediaElementSource(audio);
-        var processor = audioCtx.createJavaScriptNode(bufferSize, 1, 1);
+        source = audioCtx.createBufferSource();
+        processor = audioCtx.createJavaScriptNode(bufferSize, 1, 1);
         processor.onaudioprocess = function(e) { process(e) };
        // source.connect(analyser);
         source.connect(processor);
         processor.connect(analyser);
         analyser.connect(audioCtx.destination);
+        
+        loadAudio("audio/5.mp3");
     }
+    
     function init() {
         initAudio();
         initEq();
