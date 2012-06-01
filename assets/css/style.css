@@ -12,13 +12,7 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-#visual {
-  margin-top: 20px;
-}
-#eq-canvas {
-  -webkit-box-reflect: below 5px -webkit-linear-gradient(top, transparent, transparent 50%, rgba(255,255,255,0.2));
-}
-
+/* control */
 #control {
   position: absolute;
   top:0;
@@ -26,12 +20,14 @@ body {
   z-index: 10;
 }
 
-#play-control {
+#player {
+  float: left;
 }
     #player .btn {
         width: 128px;
         height: 128px;
         line-height: 128px;
+        cursor: pointer;
     }
     .btn.play {
         background-image: url("../img/play.png");
@@ -39,10 +35,42 @@ body {
     .btn.pause {
         background-image: url("../img/pause.png");
     }
+#playlist {
+    float: left;
+}
+    #playlist ul {
+      list-style: none;
+    }
+        #playlist ul li {
+            cursor: pointer;
+            padding: 5px 8px 5px 8px;
+        }
+        #playlist ul li:hover { background-color: #eee; }
+#visual-control {
+    float: left;
+}
+#eq-control {
+    float: left;
+}
+
+/* visual */
+#visual {
+  margin-top: 70px;
+}
+#eq-canvas {
+    -webkit-box-reflect: below 5px -webkit-linear-gradient(top, transparent, transparent 50%, rgba(255,255,255,0.2));
+    position: absolute;
+    bottom: 50px;
+    left: 0;
+}
+#waveform-canvas {
+    position: absolute;
+    bottom: 250px;
+    left: 0;
+}
 #gl-canvas {
  display: none;
 }
-
 #loading {
   z-index: 100;
   position: absolute;

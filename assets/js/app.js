@@ -401,6 +401,7 @@ App = function() {
                 source.buffer = buffer;
                 source.loop = true;
                 source.noteOn(0);
+                if (callback) callback();
             });
         };
         request.send();
@@ -414,7 +415,6 @@ App = function() {
     function pause() {
         source.disconnect();
         $("#play").removeClass("pause").addClass("play");
-        waveformCanvasCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
     }
     
     function initAudio() {
@@ -454,7 +454,10 @@ App = function() {
         
         $("#play").toggle(play, pause);
         $(".song").click(function() {
-            loadAudio($("a", this).html());
+            pause();
+            loadAudio($(this).attr("audio"), function() {
+                play();
+            });
         });
     }
     
