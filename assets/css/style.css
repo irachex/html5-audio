@@ -1,6 +1,5 @@
-html, body {
+html, body, ul, ol, li, p, div {
   margin:0px 0px; padding:0px;
-  text-align:center;
 }
 .slider { 
   margin: 10px; 
@@ -18,6 +17,10 @@ body {
   top:0;
   left:0;
   z-index: 10;
+  width: 100%;
+  padding-left: 20px;
+  padding-right: 20px;
+  border-bottom: 1px dashed #D4D4D4;
 }
 
 #player {
@@ -37,25 +40,149 @@ body {
     }
 #playlist {
     float: left;
+    margin-left: 20px;
+    text-align: left;
 }
-    #playlist ul {
-      list-style: none;
+   	/* -------------------------------------- */
+    ol{
+		counter-reset: li;
+		list-style: none;
+		*list-style: decimal;
+		font: 15px 'trebuchet MS', 'lucida sans';
+		padding: 0;
+		text-shadow: 0 1px 0 rgba(255,255,255,.5);
+	}
+	
+	ol li {
+	    cursor: pointer;
+	}
+
+	
+	/* -------------------------------------- */			
+	.rectangle-list a{
+    	position: relative;
+    	display: block;
+    	padding: .4em .4em .4em .8em;
+    	*padding: .4em;
+    	margin: .5em 0 .5em 2.5em;
+    	background: #ddd;
+    	color: #444;
+    	text-decoration: none;
+    	-webkit-transition: all .3s ease-out;
+    	-moz-transition: all .3s ease-out;
+    	-ms-transition: all .3s ease-out;
+    	-o-transition: all .3s ease-out;
+    	transition: all .3s ease-out;	
     }
-        #playlist ul li {
+
+    .rectangle-list a:hover{
+    	background: #eee;
+    }	
+
+    .rectangle-list a:before{
+    	content: counter(li);
+    	counter-increment: li;
+    	position: absolute;	
+    	left: -2.5em;
+    	top: 50%;
+    	margin-top: -1em;
+    	background: #fa8072;
+    	height: 2em;
+    	width: 2em;
+    	line-height: 2em;
+    	text-align: center;
+    	font-weight: bold;
+    }
+
+    .rectangle-list a:after{
+    	position: absolute;	
+    	content: '';
+    	border: .5em solid transparent;
+    	left: -1em;
+    	top: 50%;
+    	margin-top: -.5em;
+    	-webkit-transition: all .3s ease-out;
+    	transition: all .3s ease-out;				
+    }
+
+    .rectangle-list a:hover:after{
+    	left: -.5em;
+    	border-left-color: #fa8072;				
+    }
+        #playlist ol li.active a { background-color: #bbb; color: #fff;}
+        
+#visual-section {
+    float: left;
+    margin-left: -20px;
+}
+    #visual-section ul {
+        float: left;
+        list-style: none;
+        font: 15px 'trebuchet MS', 'lucida sans';
+		padding: 0;
+		text-shadow: 0 1px 0 rgba(255,255,255,.5);
+    }
+        #visual-section ul li {
             cursor: pointer;
-            padding: 5px 8px 5px 8px;
+            padding: .4em .4em .4em .8em;
+        	*padding: .4em;
+        	margin: .5em 0 .5em 2.5em;
+        	background: #ddd;
+        	color: #444;
+        	-webkit-transition: all .3s ease-out;
+        	transition: all .3s ease-out;
         }
-        #playlist ul li:hover { background-color: #eee; }
-#visual-control {
+        #visual-section ul li.active { background-color: #bbb; color: #fff;}
+        #visual-section ul li:hover { background-color: #eee;}
+        #visual-section ul li:before {
+            position: absolute;	
+        	left: -2.5em;
+        	top: 50%;
+        	margin-top: -1em;
+        	background: skyBlue;
+        	height: 2em;
+        	width: 2em;
+        	line-height: 2em;
+        }
+        
+#eq-section {
     float: left;
+    margin-left: -20px;
 }
-#eq-control {
-    float: left;
-}
+    #eq-control {
+        float: left;
+        margin-left: 2.5em;
+    }
+    #eq-switch {
+        float: left;
+        padding-top: 20px;
+        width: 140px;
+        text-align: center;
+    }
+        .eq-turn {
+            cursor: pointer;
+            padding: 5px 15px 5px 15px;
+            font-size: 1.2em;
+            width: 80px;
+            text-align: center;
+            color: #444;
+            background-color: #87ceeb;
+            text-shadow: 0 1px 0 rgba(255, 255, 255, .5);
+            border-radius: 4px;
+        }
+        .eq-turn.active {
+            -webkit-box-shadow:2px 2px 6px #999 inset, -2px -2px 6px #999 inset;
+    	 }
+        .eq-turn:hover { background: #87cffb;}
+    #equalizer {
+        padding-top: 10px;
+        float: left;
+    }
 
 /* visual */
 #visual {
   margin-top: 70px;
+  text-align: center;
 }
 #eq-canvas {
     -webkit-box-reflect: below 5px -webkit-linear-gradient(top, transparent, transparent 50%, rgba(255,255,255,0.2));
@@ -83,3 +210,11 @@ body {
     #loading img {
         margin-top: 250px;
     }
+.section-title {
+  font-size: 2em;
+  float:left;
+  -webkit-transform:rotate(270deg) translate(-56px,80px);
+}
+.clear {
+  clear: both;
+}

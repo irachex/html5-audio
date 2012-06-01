@@ -292,7 +292,7 @@ App = function() {
 	function initVisual() {
 	    $("#gl-canvas").hide();
 	    glCanvas = document.getElementById('gl-canvas');
-	    glCanvas.width = document.body.clientWidth;
+	    glCanvas.width = document.body.clientWidth / 1.4;
 	    analyserView = new AnalyserView("gl-canvas");
 	    analyserView.initByteBuffer();
         
@@ -312,6 +312,11 @@ App = function() {
         //setInterval(showSpectrumVisual, 1000 / 14);
         setInterval(showWaveformVisual, 1000 / 14);
         //showGLVisual();
+        
+        $("#visual-section li").click(function() {
+            $("#visual-section li").removeClass("active");
+            $(this).addClass("active");
+        });
         
         $("#default-visual").click(function() {
             switchVisual(DEFAULT_VISUAL);
@@ -379,13 +384,17 @@ App = function() {
 				$("#slider" + i).slider({value: eq[selectedEq][i]});
 			}
 		});
-		
-		$("#off-eq").click(function() {
-		    turnOffEq();
+				
+		$("#eq-on").click(function() {
+		    $(".eq-turn").removeClass("active");
+		    $(this).addClass("active");
+		    turnOnEq();
 	    });
 	    
-	    $("#on-eq").click(function() {
-	        turnOnEq();
+	    $("#eq-off").click(function() {
+	        $(".eq-turn").removeClass("active");
+		    $(this).addClass("active");
+	        turnOffEq();
         });
     }
     
@@ -441,6 +450,7 @@ App = function() {
         
         source = audioCtx.createBufferSource();
         volume = audioCtx.createGainNode();
+        volume.gain.value = 0.5;
         processor = audioCtx.createJavaScriptNode(bufferSize, 1, 1);
         processor.onaudioprocess = process;
         
@@ -452,8 +462,16 @@ App = function() {
         
         loadAudio("audio/2.mp3");
         
-        $("#play").toggle(play, pause);
+        $("#play").click(function() {
+            if ($(this).hasClass("play")) {
+                play();
+            } else {
+                pause();
+            }
+            });
         $(".song").click(function() {
+            $(".song").removeClass("active");
+            $(this).addClass("active");
             pause();
             loadAudio($(this).attr("audio"), function() {
                 play();
