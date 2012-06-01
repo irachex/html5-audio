@@ -1,7 +1,7 @@
 App = function() {
 	var EQ_COUNT = 10;
 	var EQ_BAND_COUNT = 10;
-	var FRAME_BUFFER_SIZE = 2048;
+	var FRAME_BUFFER_SIZE = 1024;
 	var eq = [];
 	var selectedEq;
 	var channels;
@@ -88,11 +88,13 @@ App = function() {
 		sourceBufferWriteOffset %= frameBufferSize * 2;
 
 		for (var i = 0; i < channels; i++) {
-			targetBuffers[i].set(sourceBuffer.subarray(offset[i + 0], offset[i + 0] + halfFrameBufferSize), 0);
-			targetBuffers[i].set(sourceBuffer.subarray(offset[i + 1], offset[i + 1] + halfFrameBufferSize), halfFrameBufferSize);
+		//	targetBuffers[i].set(sourceBuffer.subarray(offset[i + 0], offset[i + 0] + halfFrameBufferSize), 0);
+		//	targetBuffers[i].set(sourceBuffer.subarray(offset[i + 1], offset[i + 1] + halfFrameBufferSize), halfFrameBufferSize);
+		    targetBuffers[i].set(e.inputBuffer.getChannelData(i), 0);
+		    targetBuffers[i].set(e.inputBuffer.getChannelData(i), halfFrameBufferSize);
 
 			for (var j = 0; j < channels; j++) {
-				windowFunc(targetBuffers[i], targetBuffers[i].length / channels, channels, j);
+			   // windowFunc(targetBuffers[i], targetBuffers[i].length, channels, j);
 
 				fft.forward(targetBuffers[i], channels, j, fft_re[j], fft_im[j]);
 
@@ -107,11 +109,10 @@ App = function() {
 
 			for (var j = 0; j < channels; j++) {
 				fft.inverse(fft_re[j], fft_im[j], targetBuffers[i], channels, j);
-			}
-			
+			}	
 		}
 		
-		for (var i = 0; i < channels; i++) {
+		/*for (var i = 0; i < channels; i++) {
         	for (var j = 0; j < frameBufferSize / channels; j++) {
         		overlapBuffer[overlapBufferWriteOffset + j] += targetBuffers[i][j];
         	}
@@ -126,15 +127,15 @@ App = function() {
         
 		var completionOffset = overlapBufferWriteOffset;
         completionBuffer = overlapBuffer.subarray(completionOffset, completionOffset + frameBufferSize);
-        
+        */
         for (var i = 0; i < channels; ++i) {
             outputBuffer = e.outputBuffer.getChannelData(i);
 		    for (var j = 0; j < outputBuffer.length; ++j) {
-		        outputBuffer[j] = completionBuffer[j * channels + i];
+		        //outputBuffer[j] = completionBuffer[j * channels + i];
+		        outputBuffer[j] = targetBuffers[i][j];
 	        }
 		}
 		
-		showWaveformVisual();
 	}
 
 
@@ -158,12 +159,17 @@ App = function() {
 
     	return [parseInt(r * 255), parseInt(g * 255), parseInt(b * 255)];
     }
-
+    
+    function showVisual() {
+        showFrequencyVisual();
+        showWaveformVisual();
+    }
+    
     function showFrequencyVisual(time) {
       window.webkitRequestAnimationFrame(showFrequencyVisual, eqCanvas);  
 
       var freqByteData = new Uint8Array(analyser.frequencyBinCount);
-      analyser.getByteFrequencyData(freqByteData); //analyser.getByteTimeDomainData(freqByteData);
+      analyser.getByteFrequencyData(freqByteData);
 
       var SPACER_WIDTH = 15;
       var BAR_WIDTH = 10;
@@ -177,7 +183,7 @@ App = function() {
 
       for (var i = 0; i < numBars; ++i) {
     	var magnitude = freqByteData[i + OFFSET];
-        eqCanvasCtx.fillRect(i * SPACER_WIDTH, CANVAS_HEIGHT, BAR_WIDTH, -magnitude);  
+        eqCanvasCtx.fillRect(i * SPACER_WIDTH, CANVAS_HEIGHT, BAR_WIDTH, -magnitude);
       }
     }
 
@@ -251,6 +257,24 @@ App = function() {
 		return 10 * (Math.log(mag) / Math.log(10));
 	}
 	
+	function turnOnEq() {
+	    source.disconnect();
+	    processor.disconnect();
+        analyser.disconnect();
+        
+	    source.connect(processor);
+        processor.connect(analyser);
+        analyser.connect(audioCtx.destination);
+    }
+    
+    function turnOffEq() {
+        processor.disconnect();
+        analyser.disconnect();
+        
+        source.connect(analyser);
+        analyser.connect(audioCtx.destination);
+    }
+	
 	function initEq() {
 	    eq[0] = [ 0.00,  0.00,  0.00,  0.00,  0.00,  0.00,  0.00,  0.00,  0.00,  0.00]; // 
 		eq[1] = [ 0.30,  0.30,  0.20,  0.05,  0.10,  0.10,  0.20,  0.25,  0.20,  0.10]; //
@@ -285,6 +309,14 @@ App = function() {
 				$("#slider" + i).slider({value: eq[selectedEq][i]});
 			}
 		});
+		
+		$("#off-eq").click(function() {
+		    turnOffEq();
+	    });
+	    
+	    $("#on-eq").click(function() {
+	        turnOnEq();
+        });
     }
     
     function initVisual() {
@@ -299,9 +331,11 @@ App = function() {
         CANVAS_HEIGHT = eqCanvas.height;
         CANVAS_WIDTH = eqCanvas.width;
         
+        showVisual();
+		
         showFrequencyVisual();
         //setInterval(showSpectrumVisual, 1000 / 14);
-        //setInterval(showWaveformVisual, 1000 / 14);
+        setInterval(showWaveformVisual, 1000 / 14);
     }
     
     function loadAudio(url, callback) {
@@ -347,13 +381,18 @@ App = function() {
         
         source = audioCtx.createBufferSource();
         processor = audioCtx.createJavaScriptNode(bufferSize, 1, 1);
-        processor.onaudioprocess = function(e) { process(e) };
+        processor.onaudioprocess = process;
        // source.connect(analyser);
         source.connect(processor);
         processor.connect(analyser);
         analyser.connect(audioCtx.destination);
         
         loadAudio("audio/5.mp3");
+        
+        
+        $(".song").click(function() {
+            loadAudio($("a", this).html());
+        });
     }
     
     function init() {
