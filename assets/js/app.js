@@ -272,6 +272,7 @@ App = function() {
 	                $("#eq-canvas").show();
 	                $("#waveform-canvas").show();
 	                isGLVisual = false;
+	                analyser.smoothingTimeConstant = 0.9;
 	                showFrequencyVisual();
                 }
 	            break;
@@ -389,16 +390,14 @@ App = function() {
     }
     
     function loadAudio(url, callback) {
+        $("#loading").show();
         // Load asynchronously
         var request = new XMLHttpRequest();
         request.open("GET", url, true);
         request.responseType = "arraybuffer";
         request.onload = function() { 
-            /*
-            source.buffer = audioCtx.createBuffer(request.response, false);
-            source.looping = true;
-            source.noteOn(0);*/
             audioCtx.decodeAudioData(request.response, function(buffer) {
+                $("#loading").fadeOut(300);
                 source.buffer = buffer;
                 source.loop = true;
                 source.noteOn(0);

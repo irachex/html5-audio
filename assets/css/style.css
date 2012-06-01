@@ -25,3 +25,21 @@ body {
   left:0;
   z-index: 10;
 }
+
+#gl-canvas {
+ display: none;
+}
+
+#loading {
+  display: none;
+  z-index: 100;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 500px;
+  text-align: center;
+}
+    #loading img {
+        margin-top: 250px;
+    }
