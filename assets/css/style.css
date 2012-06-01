@@ -26,12 +26,24 @@ body {
   z-index: 10;
 }
 
+#play-control {
+}
+    #player .btn {
+        width: 128px;
+        height: 128px;
+        line-height: 128px;
+    }
+    .btn.play {
+        background-image: url("../img/play.png");
+    }
+    .btn.pause {
+        background-image: url("../img/pause.png");
+    }
 #gl-canvas {
  display: none;
 }
 
 #loading {
-  display: none;
   z-index: 100;
   position: absolute;
   top: 0;

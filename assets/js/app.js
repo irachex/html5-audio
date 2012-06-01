@@ -328,11 +328,11 @@ App = function() {
     }
     
 	function turnOnEq() {
-	    source.disconnect();
+	    volume.disconnect();
 	    processor.disconnect();
         analyser.disconnect();
         
-	    source.connect(processor);
+	    volume.connect(processor);
         processor.connect(analyser);
         analyser.connect(audioCtx.destination);
     }
@@ -341,7 +341,7 @@ App = function() {
         processor.disconnect();
         analyser.disconnect();
         
-        source.connect(analyser);
+        volume.connect(analyser);
         analyser.connect(audioCtx.destination);
     }
     
@@ -406,6 +406,17 @@ App = function() {
         request.send();
     }
     
+    function play() {
+        source.connect(volume);
+        $("#play").removeClass("play").addClass("pause");
+    }
+    
+    function pause() {
+        source.disconnect();
+        $("#play").removeClass("pause").addClass("play");
+        waveformCanvasCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+    }
+    
     function initAudio() {
         audioCtx = new webkitAudioContext();
         analyser = audioCtx.createAnalyser();
@@ -429,16 +440,19 @@ App = function() {
         }
         
         source = audioCtx.createBufferSource();
+        volume = audioCtx.createGainNode();
         processor = audioCtx.createJavaScriptNode(bufferSize, 1, 1);
         processor.onaudioprocess = process;
-       // source.connect(analyser);
-        source.connect(processor);
+        
+        source.connect(volume);
+       // volume.connect(analyser);
+        volume.connect(processor);
         processor.connect(analyser);
         analyser.connect(audioCtx.destination);
         
         loadAudio("audio/2.mp3");
         
-        
+        $("#play").toggle(play, pause);
         $(".song").click(function() {
             loadAudio($("a", this).html());
         });
@@ -448,6 +462,7 @@ App = function() {
         initAudio();
         initEq();
         initVisual();
+        pause();
     }
     
     return { init: init };
